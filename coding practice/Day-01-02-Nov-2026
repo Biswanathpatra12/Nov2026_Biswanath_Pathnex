@@ -94,4 +94,4 @@ git-checkout:
 		- git clone https://github.com
 		- cd sample-java-app
 		- ls -la
-
+.
