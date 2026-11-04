@@ -1,0 +1,167 @@
+Day 03 — Users, SGs, Env Vars
+
+
+Ansible — Create User
+
+---
+- name: create pathnex User
+  hosts: all
+  become: yes
+
+  tasks:
+    -name: create user pathnex admin
+     ansible.builtin.user:
+        name: biswanath-pathenx-PathnexStudent
+        shell: /bin/bash
+        state: present
+
+
+Terraform — Security Group (r6i.4xlarge EC2)
+
+provider "aws"{
+  region="us-east-1"
+}
+
+resource "aws_security_group" "pathnexSG"{
+  name="pathnexSG"
+  description:"pathnexSG for ssh"
+
+  ingress={
+    from_port=22
+    to_port=22
+    protocol="tcp"
+    cidr_blocks= ["0.0.0.0/0"]
+  }
+
+  egress={
+    from_port=0
+    to_port=0
+    protocol="-1"
+    cidr_blocks= ["0.0.0.0/0"]
+    
+    }
+
+}
+
+resource "aws_instance" "PathnexEC2" {
+  ami="ami-01234abcd"
+  instance_type= "r6i.4xlarge"
+
+  vpc_security_group_ids = [aws_security_group.pathnexSG.id]
+
+  tags={
+    name="Pathnex-EC2"
+  }
+
+}
+
+
+
+ Kubernetes — Add Environment Variables
+
+ apiVersion: v1
+ knid: Pod
+
+ metadata:
+  name: pathnex-env-Pod
+
+spec:
+  containers:
+    -name: app
+    image: nginx
+    env:
+      -name: App_Env
+       value: "production"
+
+
+
+Shell Script — Check File Exists
+
+
+#!/bin/bash
+
+FILE= /tmp/pathnex.txt
+
+if [ -f"$FILE"]
+then
+    echo "File exists"
+else
+    echo "File doesnot exists"
+fi
+
+
+Jenkins Pipeline — NodeJS Build
+
+
+pipeline {
+  agent any
+
+  tools{
+    nodejs "Node-Js16"
+  }
+
+  stages{
+    stage('Checkout'){
+      steps{
+        git url: 'https://github.com'
+      }
+    }
+    stage('Install Dependencies'){
+
+      steps{
+        sh 'npm install'
+      }
+    }
+
+    stage('run test'){
+
+      steps{
+
+        sh 'npm test'
+      }
+    }
+
+    stage('Build'){
+      steps{
+        sh 'npm run build'
+      }
+    }
+  }
+}
+
+
+ GitLab CI — NodeJS Build
+
+
+ stages:
+  - install
+  - test
+  - build
+
+node-install:
+  stage: install
+  image: node:20
+  script:
+    - npm ci
+  artifacs:
+    paths:
+      - node_modules/
+      expire_in: 1hour
+
+node-test:
+  stage: test
+  image: node:20
+  script:
+    - npm test
+
+node-build:
+  stage:build
+  image:node:20
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+      expire_in: 1 week
+
+      
