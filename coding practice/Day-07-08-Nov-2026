@@ -1,0 +1,95 @@
+Day 07 — SPEED TYPING
+
+Ansible: Install nginx
+
+---
+- name: Install nginx
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install nginx
+      apt: 
+        name: nginx
+        state: present
+
+Terraform: EC2 (choose any Pathnex instance)
+
+resource "aws_instance" "PathnexEC2" {
+    ami= "ami-01234abcd01234..."
+    instance_type= "t2.micro"
+
+    tags ={
+        Name = "PathnexEC2"
+        
+        }
+}
+
+Kubernetes: Deployment 2 replicas
+
+apiServer: v1
+kind: Deployment
+
+metadata:
+  name: Project-name
+  spec:
+    replicas: 2
+    selectors:
+      matchLabels:
+        app: Project-name
+
+Shell: Print date + uptime
+
+#!/bin/bash
+
+date
+uptime
+
+Jenkins Pipeline — Parameterized
+
+pipeline{
+  agent any
+  parameters{
+      string(
+          name: "Environment",
+          defaultValue: "dev",
+          description: "Deployment Environment"
+      )
+  }
+
+  environment {
+      INST_NAME = "Pathnex"
+  }
+
+  stages{
+      stage('Checkout'){
+        steps{
+            git url: "https://github.com"
+        }
+      }
+      stage('Deploy'){
+
+        steps{
+
+          sh 'echo Deploy via $Environment by $INST_NAME'
+        }
+      }
+  }
+
+}
+
+ GitLab CI — Parameterized via Variables
+
+ stages:
+  - Deploy
+
+  variables:
+    INST_NAME: "PathnexEC2"
+    ENV: "dev"
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+
+  script:
+    - echo "Deploying to $ENV by $INST_NAME"
