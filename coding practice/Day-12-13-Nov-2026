@@ -1,0 +1,128 @@
+Day 12 — File Content, RDS Skeleton, Rolling Update, Backup
+
+Ansible — Ensure File With Content
+
+---
+- name: Create config file for pathnex
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: write content to file
+      copy:
+        dest: /etc/pathnex.config
+        content: |
+            Welcome to pathnex training Day 12
+
+Terraform — RDS Skeleton
+
+resource "aws_db-instance" "PathnexRDS" {
+  allocated_storage = 20
+  engine = "mysql"
+  instance_class = "db.t3.micro"
+
+  db_name = "pathnexdb"
+  username = "admin"
+  password = "password123"
+  skip_final_snapshort = true
+}
+
+
+Kubernetes — Rolling Update Strategy
+
+apiVersion: app/v1
+kind: Deployment
+
+metadata:
+  name: pathnex-Rolling
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RoolingUpdate
+    roolingUpdate: 
+      maxSurge: 1
+      maxUnavailable: 1
+
+
+    selector:
+      matchLabels:
+        app: roll
+
+      template:
+    metadata:
+      labels:
+        app: roll
+
+    spec:
+      containers:
+        - name: web
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+
+Shell Script — Backup Directory
+
+#!/bin/bash
+
+SOURCE="/var/log"
+DEST="/backup/pathnex-$(date +%F).tar.gz"
+
+mkdir -p /backup
+
+tar -czf "$DEST" "$SOURCE"
+if [ $? -eq 0 ]; then
+    echo "Backup created successfully at: $DEST"
+else
+    echo "Backup failed!"
+    exit 1
+fi
+
+
+Jenkins Pipeline — Multi-branch
+
+pipeline {
+    agent any
+
+    environment {
+        INSTITUTE_NAME = "Pathnex"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "Checking out source code for ${env.BRANCH_NAME}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+    }
+}
+
+GitLab CI — Branch Specific Jobs
+
+
+stages:
+  - build
+
+build-main:
+  stage: build
+  image: maven:3.8.1-jdk-17
+  script:
+    - mvn clean compile
+  only:
+    - main
+
+build-dev:
+  stage: build
+  image: maven:3.8.1-jdk-17
+  script:
+    - mvn clean compile
+  only:
+    - dev
