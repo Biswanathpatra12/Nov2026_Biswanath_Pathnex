@@ -1,0 +1,237 @@
+Day 14 — MINI PROJECT
+
+resource "aws_vpc" "main" {
+cidr_block = "10.0.0.0/16"
+enable_dns_hostsname= true
+enable_dns_support = true
+tags = {
+
+    Name = "terraform-vpc"
+}
+
+}
+
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "ap-south-1a"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "terraform-public-subnet"
+  }
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "terraform-igw"
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "terraform-public-rt"
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+
+resource "aws_security_group" "ec2_sg" {
+  name   = "terraform-ec2-sg"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    description = "SSH access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["YOUR_PUBLIC_IP/32"]
+  }
+
+  ingress {
+    description = "HTTP access"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "terraform-ec2-sg"
+  }
+}
+
+
+resource "aws_instance" "web" {
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
+  key_name                    = var.key_name
+  associate_public_ip_address = true
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
+
+  tags = {
+    Name = "Terraform-EC2"
+  }
+}
+
+
+---
+- name: Install Nginx and Deploy HTML
+  hosts: webservers
+  become: yes
+
+  tasks:
+
+    - name: Update package cache (Ubuntu)
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: Copy HTML file to Nginx directory
+      copy:
+        src: index.html
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Nginx
+
+    - name: Start and enable Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: nginx-deployment
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: nginx-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: nginx
+
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+      protocol: TCP
+
+#!/bin/bash
+free -h
+df -h
+
+Jenkins Pipeline — Scheduled Build
+
+
+pipeline {
+    agent any
+
+    environment {
+        INSTITUTE_NAME = "Pathnex"
+    }
+
+    triggers {
+        cron('H 2 * * *')  
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+    }
+}
+
+
+GitLab CI — Scheduled Pipeline
+
+
+stages:
+  - build
+
+build:
+  stage: build
+
+  image: maven:3.8.1-jdk-17
+
+  script:
+    - git clone https://github.com
+    - cd sample-java-app
+    - mvn clean package
