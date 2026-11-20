@@ -1,0 +1,120 @@
+Day 17 — Loops, ALB, Namespace, Top Processes
+
+
+ Ansible — Create Multiple Users in Loop
+
+ ---
+ - name: Create multiple pathnex user
+   hosts: all
+   become: yes
+
+   vars:
+        users:
+            - dev1
+            - dev2
+            - dev3
+
+        tasks:
+          - name: Create user
+            user: 
+                name: "{{item}}"
+                state: present
+                loop: "{{users}}" 
+
+
+Terraform — Application Load Balancer
+
+resource "aws_lb" "pathnexalb" {
+      name = "pathnex-alb"
+      load_balancer_type= "application"
+      subnets = [aws_subnets.pathnexsubnets.id]
+
+      tags = {
+        Name = "pathnex-alb"
+      }
+}
+
+Kubernetes — Namespace + Deployment
+
+apiVersion: v1
+kind: Namespace
+
+metadata:
+  name: pathnex-Namespace
+
+  ---
+
+  apiVersion: app/v1
+  kind: Deployment
+
+  metadata:
+    name: pathnex-deploy
+    namespace: pathnex-namespace
+  spec: 
+      replicas: 2
+      selecctor: 
+          matchLabels:
+            app: pathnex
+      templates:
+        metadata:
+          labels:
+            app: pathnex
+
+        spec:
+          containers:
+            - name: app
+              image: nginx
+              ports: 
+                - containerPort: 80
+
+Shell Script — Top 5 Memory Processes
+
+#!/bin/bash
+ps aux --sort=-%mem | head -n 6
+
+
+Jenkins Pipeline — Simulated Deployment
+
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'staging', 'prod'],
+            description: 'Deployment Environment'
+        )
+    }
+
+    environment {
+        INSTITUTE_NAME = "Pathnex"
+    }
+
+    stages {
+        stage('Deploy') {
+            steps {
+                sh 'echo "Deploying $INSTITUTE_NAME application to $ENVIRONMENT"'
+            }
+        }
+    }
+}
+
+
+GitLab CI — Deployment Simulation
+
+
+stages:
+  - deploy
+
+variables:
+  INSTITUTE_NAME: "Pathnex"
+  ENVIRONMENT: "staging"
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+
+  script:
+    - echo "Deploying $INSTITUTE_NAME application to $ENVIRONMENT"
+
